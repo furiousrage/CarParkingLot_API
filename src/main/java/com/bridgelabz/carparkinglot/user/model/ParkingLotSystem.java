@@ -25,7 +25,7 @@ public class ParkingLotSystem {
     }
 
     @ManyToOne
-    private Owner owner;
+    private UserRegistration owner;
 
 
     @OneToMany(mappedBy = "parkingLotSystem")

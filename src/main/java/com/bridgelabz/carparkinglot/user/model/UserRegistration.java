@@ -16,7 +16,7 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-public class Owner {
+public class UserRegistration {
 
     @Id
     @GeneratedValue
@@ -42,6 +42,13 @@ public class Owner {
 
     @OneToMany(mappedBy = "owner")
     private List<ParkingLotSystem> parkingLotSystemList;
+
+    @OneToMany(mappedBy = "owner")
+    private List<UnParkedVehicle> unParkedVehicleList;
+
+    public void addUnParkedVehicleList(UnParkedVehicle unParkedVehicleList) {
+        this.unParkedVehicleList.add(unParkedVehicleList);
+    }
 
     public void createParkingLotSystem(ParkingLotSystem parkingLotSystem) {
         this.parkingLotSystemList.add(parkingLotSystem);

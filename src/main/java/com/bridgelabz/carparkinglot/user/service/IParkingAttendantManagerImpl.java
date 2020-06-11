@@ -4,12 +4,18 @@ import com.bridgelabz.carparkinglot.response.Response;
 import com.bridgelabz.carparkinglot.user.dto.ParkVehicleDTO;
 import com.bridgelabz.carparkinglot.user.model.ParkedVehicle;
 import com.bridgelabz.carparkinglot.user.model.ParkingLots;
+import com.bridgelabz.carparkinglot.user.model.UnParkedVehicle;
+import com.bridgelabz.carparkinglot.user.model.UserRegistration;
 import com.bridgelabz.carparkinglot.user.repository.ParkedVehicleRepository;
 import com.bridgelabz.carparkinglot.user.repository.ParkingLotsRepository;
+import com.bridgelabz.carparkinglot.user.repository.UnParkedVehicleRepository;
+import com.bridgelabz.carparkinglot.user.repository.UserRegistrationRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +24,12 @@ public class IParkingAttendantManagerImpl implements IParkingAttendantManager {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private UserRegistrationRepository userRegistrationRepository;
+
+    @Autowired
+    private UnParkedVehicleRepository unParkedVehicleRepository;
 
     @Autowired
     private ParkingLotsRepository parkingLotsRepository;
@@ -50,6 +62,13 @@ public class IParkingAttendantManagerImpl implements IParkingAttendantManager {
         if (!checkVehicleAlreadyAvailable(vehicleNumber)) {
             ParkedVehicle parkedVehicle = parkedVehicleRepository.findByVehicleNumber(vehicleNumber);
             parkedVehicle.getParkingLots().setAvailableCapacity(parkedVehicle.getParkingLots().getAvailableCapacity() + 1);
+            UnParkedVehicle vehicle = modelMapper.map(parkedVehicle,UnParkedVehicle.class);
+            vehicle.setEndDate(LocalDate.now());
+            vehicle.setEndTime(LocalTime.now());
+            UserRegistration owner = vehicle.getOwner();
+            owner.addUnParkedVehicleList(vehicle);
+            userRegistrationRepository.save(owner);//
+            unParkedVehicleRepository.save(vehicle);
             parkedVehicle.getParkingLots().getParkedVehicleList().remove(parkedVehicle);
             parkedVehicleRepository.delete(parkedVehicle);
             return new Response("Vehicle unParked Successfully", 202);

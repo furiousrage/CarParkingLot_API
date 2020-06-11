@@ -4,9 +4,9 @@ package com.bridgelabz.carparkinglot.user.controller;
 import com.bridgelabz.carparkinglot.exception.LoginException;
 import com.bridgelabz.carparkinglot.response.Response;
 import com.bridgelabz.carparkinglot.user.dto.LoginDTO;
-import com.bridgelabz.carparkinglot.user.dto.OwnerDTO;
+import com.bridgelabz.carparkinglot.user.dto.UserRegistrationDTO;
 import com.bridgelabz.carparkinglot.user.dto.ParkVehicleDTO;
-import com.bridgelabz.carparkinglot.user.dto.ParkingLotsDTO;
+import com.bridgelabz.carparkinglot.user.dto.ParkingLotSystemDTO;
 import com.bridgelabz.carparkinglot.user.service.IParkingAttendantManager;
 import com.bridgelabz.carparkinglot.user.service.IUserService;
 import org.omg.CORBA.UserException;
@@ -27,8 +27,8 @@ public class UserController {
     private IUserService iUserService;
 
     @PostMapping("/register")
-    public String addUser(@RequestBody OwnerDTO ownerDTO) throws LoginException {
-        return iUserService.registration(ownerDTO);
+    public String addUser(@RequestBody UserRegistrationDTO userRegistrationDTO) throws LoginException {
+        return iUserService.registration(userRegistrationDTO);
     }
 
     @GetMapping(value = "/{token}")
@@ -43,14 +43,9 @@ public class UserController {
         return new ResponseEntity<Response>(response, HttpStatus.OK);
     }
 
-    @PostMapping("/add/{token}/{noOfParkingLotSystem}")
-    public Response addingParkingLotSystem(@PathVariable String token, @PathVariable long noOfParkingLotSystem) {
-        return iUserService.createParkingLotSystem(token, noOfParkingLotSystem);
-    }
-
-    @PostMapping("/{token}")
-    public Response addingParkingLots(@PathVariable String token, @RequestBody ParkingLotsDTO parkinglotsDto) {
-        return iUserService.createParkingLot(token, parkinglotsDto);
+    @PostMapping("/ParkingLotSystem}")
+    public Response addingParkingLotSystem(ParkingLotSystemDTO parkingLotSystemDTO) {
+        return iUserService.createParkingLotSystem(parkingLotSystemDTO);
     }
 
     @RequestMapping(value = "/parkVehicle", method = RequestMethod.POST)

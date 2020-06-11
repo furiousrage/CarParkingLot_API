@@ -6,7 +6,11 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ParkingLotsDTO {
+public class ParkingLotSystemDTO {
+
+    private int noOfParkingLotSystem;
+
+    private LoginDTO loginDTO;
 
     private int noOfParkingLot;
 

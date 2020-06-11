@@ -8,7 +8,7 @@ import javax.validation.constraints.Pattern;
 
 @Getter
 @Setter
-public class OwnerDTO {
+public class UserRegistrationDTO {
 
     @Pattern(regexp = "^([A-Z]){1}[a-zA-Z]{3,}$", message = "length must be 3")
     private String firstName;

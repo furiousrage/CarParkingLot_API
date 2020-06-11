@@ -4,12 +4,12 @@ package com.bridgelabz.carparkinglot.user.service;
 import com.bridgelabz.carparkinglot.exception.LoginException;
 import com.bridgelabz.carparkinglot.response.Response;
 import com.bridgelabz.carparkinglot.user.dto.LoginDTO;
-import com.bridgelabz.carparkinglot.user.dto.OwnerDTO;
-import com.bridgelabz.carparkinglot.user.dto.ParkingLotsDTO;
-import com.bridgelabz.carparkinglot.user.model.Owner;
+import com.bridgelabz.carparkinglot.user.dto.UserRegistrationDTO;
+import com.bridgelabz.carparkinglot.user.dto.ParkingLotSystemDTO;
+import com.bridgelabz.carparkinglot.user.model.UserRegistration;
 import com.bridgelabz.carparkinglot.user.model.ParkingLotSystem;
 import com.bridgelabz.carparkinglot.user.model.ParkingLots;
-import com.bridgelabz.carparkinglot.user.repository.OwnerRepository;
+import com.bridgelabz.carparkinglot.user.repository.UserRegistrationRepository;
 import com.bridgelabz.carparkinglot.user.repository.ParkingLotSystemRepository;
 import com.bridgelabz.carparkinglot.user.repository.ParkingLotsRepository;
 import com.bridgelabz.carparkinglot.utility.JwtUtill;
@@ -34,7 +34,7 @@ public class IUserServiceImpl implements IUserService {
     private JwtUtill jwtUtill;
 
     @Autowired
-    private OwnerRepository userRepository;
+    private UserRegistrationRepository userRepository;
 
     @Autowired
     private ParkingLotSystemRepository parkingLotSystemRepository;
@@ -49,19 +49,19 @@ public class IUserServiceImpl implements IUserService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
-    public String registration(OwnerDTO ownerDTO) throws LoginException {
+    public String registration(UserRegistrationDTO userRegistrationDTO) throws LoginException {
 
-        Owner owner = modelMapper.map(ownerDTO, Owner.class);
-        Owner alreadyPresent = userRepository.findByEmailId(owner.getEmailId());
+        UserRegistration userRegistration = modelMapper.map(userRegistrationDTO, UserRegistration.class);
+        UserRegistration alreadyPresent = userRepository.findByEmailId(userRegistration.getEmailId());
         if (alreadyPresent != null) {
             throw new LoginException("User Already Present Try with Other Email-Id");
         }
-        String password = owner.getPassword();
+        String password = userRegistration.getPassword();
         String encryptPwd = bCryptPasswordEncoder.encode(password);
-        owner.setPassword(encryptPwd);
-        userRepository.save(owner);
+        userRegistration.setPassword(encryptPwd);
+        userRepository.save(userRegistration);
         try {
-            registrationService.sendNotification(owner);
+            registrationService.sendNotification(userRegistration);
         } catch (MailException e) {
             logger.info("Error Sending Email" + e.getMessage());
         }
@@ -71,16 +71,16 @@ public class IUserServiceImpl implements IUserService {
     @Override
     public Response emailValidate(String token) {
         Long owner_Id = jwtUtill.decodeToken(token);
-        Owner owner = userRepository.findByUserId(owner_Id);
-        owner.setVerify(true);
-        userRepository.save(owner);
+        UserRegistration userRegistration = userRepository.findByUserId(owner_Id);
+        userRegistration.setVerify(true);
+        userRepository.save(userRegistration);
         return new Response("Email Validated Successfully", 200);
     }
 
     @Override
     public Response loginValidation(LoginDTO loginDTO) throws LoginException {
 
-        Owner presentUser = checkEmailId(loginDTO.getEmailId());
+        UserRegistration presentUser = checkEmailId(loginDTO.getEmailId());
         if (!presentUser.isVerify()) {
             throw new LoginException("Please First Verify YourSelf");
         }
@@ -94,39 +94,41 @@ public class IUserServiceImpl implements IUserService {
     }
 
     @Override
-    public Response createParkingLotSystem(String token, long noOfParkingSystem) {
-        Long ownerId = jwtUtill.decodeToken(token);
-        Owner owner = userRepository.findByUserId(ownerId);
-        for (long i = 1; i <= noOfParkingSystem; i++) {
-            ParkingLotSystem parkingLotSystemObject = new ParkingLotSystem(i);
-            owner.createParkingLotSystem(parkingLotSystemObject);
-            parkingLotSystemObject.setOwner(owner);
-            parkingLotSystemRepository.save(parkingLotSystemObject);
+    public Response createParkingLotSystem(ParkingLotSystemDTO parkingLotSystemDTO) {
+        String emailId = parkingLotSystemDTO.getLoginDTO().getEmailId();
+        UserRegistration userRegistration = userRepository.findByEmailId(emailId);
+        boolean actor = userRegistration.getActor().equalsIgnoreCase("OWNER");
+        boolean status = bCryptPasswordEncoder.matches(parkingLotSystemDTO.getLoginDTO().getPassword(), userRegistration.getPassword());
+        if(status && actor) {
+            for (long i = 1; i <= parkingLotSystemDTO.getNoOfParkingLotSystem(); i++) {
+                ParkingLotSystem parkingLotSystemObject = new ParkingLotSystem(i);
+                userRegistration.createParkingLotSystem(parkingLotSystemObject);
+                parkingLotSystemObject.setOwner(userRegistration);
+                parkingLotSystemRepository.save(parkingLotSystemObject);
+            }
+            return createParkingLot(parkingLotSystemDTO, userRegistration);
         }
-
-        return new Response("ParkingLotSystem Created Successfully", 200);
+            return new Response("Password Incorrect : Unauthorized Access", 401);
     }
 
-    @Override
-    public Response createParkingLot(String token, ParkingLotsDTO parkingLotsDTO) {
-        Long ownerId = jwtUtill.decodeToken(token);
-        Owner owner = userRepository.findByUserId(ownerId);
-        ParkingLotSystem parkingLotSystem = owner.getParkingLotSystemList().get(0);
+    private Response createParkingLot(ParkingLotSystemDTO parkingLotSystemDTO, UserRegistration userRegistration) {
+
+        ParkingLotSystem parkingLotSystem = userRegistration.getParkingLotSystemList().get(0);
         long j = 1;
-        for (int i = 0; i < parkingLotsDTO.getNoOfParkingLot(); i++) {
+        for (int i = 0; i < parkingLotSystemDTO.getNoOfParkingLot(); i++) {
             ParkingLots parkingLotsObject = new ParkingLots(j);
-            parkingLotsObject.setSlotCapacity(parkingLotsDTO.getSlotCapacity()[i]);
-            parkingLotsObject.setAvailableCapacity(parkingLotsDTO.getSlotCapacity()[i]);
+            parkingLotsObject.setSlotCapacity(parkingLotSystemDTO.getSlotCapacity()[i]);
+            parkingLotsObject.setAvailableCapacity(parkingLotSystemDTO.getSlotCapacity()[i]);
             parkingLotSystem.addParkingLotsList(parkingLotsObject);
             parkingLotsObject.setParkingLotSystem(parkingLotSystem);
             parkingLotsRepository.save(parkingLotsObject);
             j++;
         }
-        return new Response("ParkingLots Created Successfully", 200);
+        return new Response("ParkingLotSystem Created Successfully", 200);
     }
 
-    private Owner checkEmailId(String emailId) throws LoginException {
-        Owner userRepositoryByEmailId = userRepository.findByEmailId(emailId);
+    private UserRegistration checkEmailId(String emailId) throws LoginException {
+        UserRegistration userRepositoryByEmailId = userRepository.findByEmailId(emailId);
         if (userRepositoryByEmailId == null)
             throw new LoginException("Invalid Email_ID");
         return userRepositoryByEmailId;

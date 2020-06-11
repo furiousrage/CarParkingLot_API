@@ -1,7 +1,7 @@
 package com.bridgelabz.carparkinglot.utility;
 
 
-import com.bridgelabz.carparkinglot.user.model.Owner;
+import com.bridgelabz.carparkinglot.user.model.UserRegistration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -22,13 +22,13 @@ public class RegistrationMailService {
         this.mailSender = mailSender;
     }
 
-    public void sendNotification(Owner owner) throws MailException {
+    public void sendNotification(UserRegistration userRegistration) throws MailException {
 
         SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setTo(owner.getEmailId());
+        mailMessage.setTo(userRegistration.getEmailId());
         mailMessage.setFrom("pooponchipoo@gmail.com");
-        mailMessage.setSubject("Thank you For Registering With Us : " + owner.getFirstName() + owner.getLastName());
-        mailMessage.setText("please click on the link to verify yourself : " + "http://localhost:8080/carparkinng/" + jwtUtill.createToken(owner.getUserId()));
+        mailMessage.setSubject("Thank you For Registering With Us : " + userRegistration.getFirstName() + userRegistration.getLastName());
+        mailMessage.setText("please click on the link to verify yourself : " + "http://localhost:8080/carparkinng/" + jwtUtill.createToken(userRegistration.getUserId()));
 
         mailSender.send(mailMessage);
     }
