@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 
 @RestController
 @RequestMapping("/carparkinng")
@@ -49,7 +51,7 @@ public class UserController {
     }
 
     @RequestMapping(value = "/parkVehicle", method = RequestMethod.POST)
-    public Response parkVehicle(@RequestBody ParkVehicleDTO parkVehicleDTO) {
+    public Response parkVehicle(@RequestBody ParkVehicleDTO parkVehicleDTO) throws IOException {
         return iParkingAttendantManager.parkVehicle(parkVehicleDTO);
     }
 

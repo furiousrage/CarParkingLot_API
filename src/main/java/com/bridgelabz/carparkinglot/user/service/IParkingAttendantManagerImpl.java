@@ -1,5 +1,6 @@
 package com.bridgelabz.carparkinglot.user.service;
 
+import com.bridgelabz.carparkinglot.MailHandler.MessageSender;
 import com.bridgelabz.carparkinglot.response.Response;
 import com.bridgelabz.carparkinglot.user.dto.ParkVehicleDTO;
 import com.bridgelabz.carparkinglot.user.model.ParkedVehicle;
@@ -14,6 +15,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -37,24 +39,29 @@ public class IParkingAttendantManagerImpl implements IParkingAttendantManager {
     @Autowired
     private ParkedVehicleRepository parkedVehicleRepository;
 
+    @Autowired
+    private MessageSender messageSender;
+
     @Override
-    public Response parkVehicle(ParkVehicleDTO parkVehicleDTO) {
+    public Response parkVehicle(ParkVehicleDTO parkVehicleDTO) throws IOException {
         ParkedVehicle parkedVehicle = modelMapper.map(parkVehicleDTO, ParkedVehicle.class);
         long parkingLotsId = findParkingLot();
         ParkingLots parkingLot = parkingLotsRepository.findByParkingLotId(parkingLotsId);
         long slot = findParkingSlot(parkingLot);
-        if (parkingLot.getAvailableCapacity() > 0 && checkVehicleAlreadyAvailable(parkedVehicle.getVehicleNumber())) {
+        if (checkVehicleAlreadyAvailable(parkedVehicle.getVehicleNumber())) {
             parkedVehicle.setSlotNumber(slot);
             parkedVehicle.setParkingLots(parkingLot);
             parkingLot.setAvailableCapacity(parkingLot.getAvailableCapacity() - 1);
+            if(parkingLot.getAvailableCapacity() == 0){
+                UserRegistration owner = parkingLot.getParkingLotSystem().getOwner();
+                messageSender.sendEmail(owner.getEmailId(),"Alert!!"+"\nParking lot Id: "+parkingLot.getParkingLotId());
+            }
             parkedVehicleRepository.save(parkedVehicle);
             parkingLot.addParkedVehicle(parkedVehicle);
             parkingLotsRepository.save(parkingLot);
             return new Response("Vehicle Parked", 202);
-        } else if (!checkVehicleAlreadyAvailable(parkedVehicle.getVehicleNumber()))
+        } else
             return new Response("Vehicle already parked", 202);
-        return new Response("ParkingLot is Full ", 202);
-
     }
 
     @Override
@@ -65,10 +72,11 @@ public class IParkingAttendantManagerImpl implements IParkingAttendantManager {
             UnParkedVehicle vehicle = modelMapper.map(parkedVehicle,UnParkedVehicle.class);
             vehicle.setEndDate(LocalDate.now());
             vehicle.setEndTime(LocalTime.now());
-            UserRegistration owner = vehicle.getOwner();
+            vehicle.setOwner(parkedVehicle.getParkingLots().getParkingLotSystem().getOwner());
+            UserRegistration owner =parkedVehicle.getParkingLots().getParkingLotSystem().getOwner();
             owner.addUnParkedVehicleList(vehicle);
-            userRegistrationRepository.save(owner);//
             unParkedVehicleRepository.save(vehicle);
+            userRegistrationRepository.save(owner);
             parkedVehicle.getParkingLots().getParkedVehicleList().remove(parkedVehicle);
             parkedVehicleRepository.delete(parkedVehicle);
             return new Response("Vehicle unParked Successfully", 202);
@@ -93,6 +101,8 @@ public class IParkingAttendantManagerImpl implements IParkingAttendantManager {
         long min = Integer.MIN_VALUE;
         long index = 0;
         for (ParkingLots parkingLots : lotsList) {
+            if(parkingLots.getAvailableCapacity()==0)
+                continue;
             if (min < parkingLots.getAvailableCapacity()) {
                 min = parkingLots.getAvailableCapacity();
                 index = parkingLots.getParkingLotId();

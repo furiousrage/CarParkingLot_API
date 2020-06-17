@@ -97,6 +97,8 @@ public class IUserServiceImpl implements IUserService {
     public Response createParkingLotSystem(ParkingLotSystemDTO parkingLotSystemDTO) {
         String emailId = parkingLotSystemDTO.getLoginDTO().getEmailId();
         UserRegistration userRegistration = userRepository.findByEmailId(emailId);
+         if(!userRegistration.isVerify())
+             return new Response("First Verify YourSelf??",401);
         boolean actor = userRegistration.getActor().equalsIgnoreCase("OWNER");
         boolean status = bCryptPasswordEncoder.matches(parkingLotSystemDTO.getLoginDTO().getPassword(), userRegistration.getPassword());
         if(status && actor) {

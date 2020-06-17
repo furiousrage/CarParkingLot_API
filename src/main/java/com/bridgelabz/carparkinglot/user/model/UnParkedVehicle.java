@@ -13,7 +13,7 @@ import java.time.LocalTime;
 public class UnParkedVehicle {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.TABLE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long id;
 
     private long slotNumber;
